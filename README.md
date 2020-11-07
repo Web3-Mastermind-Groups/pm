@@ -1,70 +1,77 @@
-# Getting Started with Create React App
+# Web3 Mastermind Groups PM Suite
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Premium members in W3MG have the opportunity to help shape the protocols used in Web3 Mastermind Groups by voting on proposals. Any PM can submit a proposal and all are encouraged to vote on each proposal.
 
-## Available Scripts
+This suite of smart contracts are the interface by which the aforementioned governance process is conducted.
 
-In the project directory, you can run:
+## Usage
 
-### `npm start`
+Clone this repository
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Run `npm run dev`
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+This will start a local ganache blockchain, migrate the contracts to it, and launch a React.js web app
 
-### `npm test`
+### Production
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+To interact with the application on a live network, run `npm run prod`
 
-### `npm run build`
+### Testing
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+To test the contracts run `truffle test`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## How It Works
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### PM Registry
 
-### `npm run eject`
+Individauls wanting to participate in W3MG as a premium member must purchase a subscription.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Their Ethereum address is then added to the PM Registry contract.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### PM Pool
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Each week, ETH is sent to the PM Pool contract. The amount of ETH placed in the contract at a time is equal to `C * R` where `C` is the weekly cost in USD of a premium membership subscription and `R` is the number of Ethereum addresses registered in the PM Registry.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### PM Referenda
 
-## Learn More
+With the PM Referenda contract, registered Ethereum addresses can create a proposal, view open proposals, and vote on open proposals.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Proposals can include a message which is a link to a simple Ceramic document that lives on IPFS.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Proposals can alternatively have a script that executes if the propsal is accepted.
 
-### Code Splitting
+- Every proposal is open for voting for 3 weeks
+- PMs are restricted to creating at most 1 proposal per week
+- PMs can change their vote on open proposals as often as they want during the voting period
+- All votes are blind commits and are revealed when the voting period ends
+- In order for a propsal to be accepted, at least 10% of registered PMs must vote on it, and more than 50% of the votes cast must be "in favor"
+- When the voting period ends any PM can reveal the result
+- Executable proposals are executed as soon as their votes are revealed and if the proposal is accepted
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Proposal Statuses
 
-### Analyzing the Bundle Size
+```
+Status {
+  OPEN
+  ACCEPTED
+  REJECTED
+}
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Proposal Metadata
 
-### Making a Progressive Web App
+```
+Proposal {
+  status: Status
+  message: ceramic_ipfs_url
+  script: bytes
+  votes: number
+  yeas: number
+  closes: block.timestamp
+}
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Additional Information
 
-### Advanced Configuration
+The PM suite maintains an administrator role that gives an Ethereum address the ability to register PMs, fund the pool, and has all PM privileges but is not a registered PM.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
