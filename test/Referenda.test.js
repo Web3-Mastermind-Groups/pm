@@ -44,9 +44,9 @@ contract("Referenda", function (accounts) {
       const isPM = await registry.hasPMRole.call(alex);
       expect(isPM).to.be.true;
 
-      const prevProposalCount = await referenda.proposalCount.call();
+      const prevProposalCount = await getProposalCount();
       await createProposal(undefined, undefined, undefined, alex);
-      const nextProposalCount = await referenda.proposalCount.call();
+      const nextProposalCount = await getProposalCount();
       expect(prevProposalCount.add(toBN(1)).eq(nextProposalCount)).to.be.true;
 
       const proposal = await referenda.proposalWithId(nextProposalCount.toNumber());
