@@ -23,7 +23,7 @@ contract Referenda {
         uint256 id;
         bytes32 link;
         uint256 payoutAmount;
-        address payoutRecipiet;
+        address payoutRecipient;
         address proposer;
         Status status;
         mapping(address => bytes32) voteCastBy;
