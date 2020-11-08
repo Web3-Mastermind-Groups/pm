@@ -1,0 +1,31 @@
+{
+    "root": true,
+    "env": {
+        "browser": true,
+        "commonjs": true,
+        "es2021": true,
+        "mocha": true,
+        "truffle/globals": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 12
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:mocha/recommended"
+    ],
+    "plugins": [
+        "mocha",
+        "chai-friendly",
+        "truffle"
+    ],
+    "rules": {
+        "semi": ["error", "always"],
+        "quotes": ["error", "double"],
+        "no-unused-expressions": 0,
+
+        "chai-friendly/no-unused-expressions": 2,
+        "mocha/no-skipped-tests": "error",
+        "mocha/no-exclusive-tests": "error"
+    }
+}
