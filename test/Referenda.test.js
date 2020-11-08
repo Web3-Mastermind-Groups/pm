@@ -10,6 +10,7 @@ const Registry = artifacts.require("Registry");
 
 const BN = web3.utils.BN;
 const toBN = web3.utils.toBN;
+const SECONDS_IN_WEEK = 604800;
 
 contract("Referenda", function (accounts) {
   const admin = accounts[0];
@@ -52,32 +53,31 @@ contract("Referenda", function (accounts) {
     it("should create a proposal with status open", async function () {
       await createProposal(undefined, undefined, undefined, alex);
       const proposal = await referenda.proposalWithId(1);
-      expect(proposal.id.eq(toBN(1))).to.be.true;
+      expect(proposal.status.eq(toBN(0))).to.be.true;
     });
     it("should create a proposal that closes in 3 weeks", async function () {
       await createProposal(undefined, undefined, undefined, alex);
 
-      const prevProposalCount = await referenda.proposalCount.call();
-      await createProposal(undefined, undefined, alex);
-      const nextProposalCount = await referenda.proposalCount.call();
-      expect(prevProposalCount.add(toBN(1)).eq(nextProposalCount)).to.be.true;
+      const proposal = await referenda.proposalWithId(1);
+      expect(proposal.dateOpened.lt(proposal.dateClosed)).to.be.true;
 
-      const proposal = await referenda.proposalWithId(nextProposalCount.toNumber());
-      expect(proposal.id.eq(toBN(1))).to.be.true;
+      const expectedDiff = toBN(SECONDS_IN_WEEK * 3);
+      const actualDiff = proposal.dateClosed.sub(proposal.dateOpened);
+      expect(actualDiff.eq(expectedDiff)).to.be.true;
     });
     it("should emit a ProposalCreated event when a proposal is created", async function() {
       const tx = await createProposal(undefined, undefined, undefined, alex);
       const proposalCount = await getProposalCount();
+      const proposal = await referenda.proposalWithId.call(proposalCount);
       const eventLog = tx.logs[0];
       const eventEmitted = (eventLog.event == "ProposalCreated");
       expect(eventEmitted).to.be.true;
 
-      const ID = 0;
-      const PROPOSER = 1;
-      const DATE_CLOSED = 2;
-      expect(eventLog.args[ID].eq(proposalCount)).to.be.true;
-      expect(eventLog.args[PROPOSER]).to.equal(alex);
-      expect(eventLog.args[DATE_CLOSED].gt(toBN(getUnixTimestamp()))).to.be.true;
+      expect(eventLog.args.id.eq(proposalCount)).to.be.true;
+      expect(eventLog.args.proposer).to.equal(alex);
+      expect(eventLog.args.dateClosed.eq(proposal.dateClosed)).to.be.true;
+      expect(eventLog.args.payoutAmount.eq(toBN(0))).to.be.true;
+      expect(eventLog.args.payoutRecipient).to.equal(zeroAddress);
     });
   });
 
