@@ -3,14 +3,16 @@ const { create } = require("domain");
 const expect = require("chai").expect;
 const web3 = require("web3");
 
-const { PM_ROLE, getUnixTimestamp } = require("./utils");
+const {
+  ONE_ETH_IN_WEI,
+  PM_ROLE,
+  SECONDS_IN_WEEK
+} = require("./utils");
 
 const Referenda = artifacts.require("Referenda");
 const Registry = artifacts.require("Registry");
 
-const BN = web3.utils.BN;
 const toBN = web3.utils.toBN;
-const SECONDS_IN_WEEK = 604800;
 
 contract("Referenda", function (accounts) {
   const admin = accounts[0];
@@ -50,6 +52,14 @@ contract("Referenda", function (accounts) {
       const proposal = await referenda.proposalWithId(nextProposalCount.toNumber());
       expect(proposal.id.eq(toBN(1))).to.be.true;
     });
+    it("should create a proposal with payout set", async function () {
+      const payoutAmount = toBN(ONE_ETH_IN_WEI);
+      const payoutRecipient = beth;
+      await createProposal(undefined, payoutAmount, payoutRecipient, alex);
+      const proposal = await referenda.proposalWithId(1);
+      expect(proposal.payoutAmount.eq(payoutAmount)).to.be.true;
+      expect(proposal.payoutRecipient).to.equal(beth);
+    });
     it("should create a proposal with status open", async function () {
       await createProposal(undefined, undefined, undefined, alex);
       const proposal = await referenda.proposalWithId(1);
@@ -72,7 +82,6 @@ contract("Referenda", function (accounts) {
       const eventLog = tx.logs[0];
       const eventEmitted = (eventLog.event == "ProposalCreated");
       expect(eventEmitted).to.be.true;
-
       expect(eventLog.args.id.eq(proposalCount)).to.be.true;
       expect(eventLog.args.proposer).to.equal(alex);
       expect(eventLog.args.dateClosed.eq(proposal.dateClosed)).to.be.true;
