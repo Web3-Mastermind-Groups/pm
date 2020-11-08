@@ -15,7 +15,7 @@ contract("Referenda", function (accounts) {
   const admin = accounts[0];
   const alex = accounts[1];
   const beth = accounts[2];
-  const emptyAddress = "0x0000000000000000000000000000000000000000";
+  const zeroAddress = "0x0000000000000000000000000000000000000000";
 
   let referenda;
   let registry;
@@ -34,15 +34,15 @@ contract("Referenda", function (accounts) {
       const bethIsPM = await registry.hasPMRole.call(beth);
       expect(bethIsPM).to.be.false;
 
-      expect(async () => await createProposal(undefined, undefined, admin)).to.throw;
-      expect(async () => await createProposal(undefined, undefined, beth)).to.throw;
+      expect(async () => await createProposal(undefined, undefined, undefined, admin)).to.throw;
+      expect(async () => await createProposal(undefined, undefined, undefined, beth)).to.throw;
     });
     it("should create a proposal with id equal to previous proposalCount + 1", async function () {
       const isPM = await registry.hasPMRole.call(alex);
       expect(isPM).to.be.true;
 
       const prevProposalCount = await referenda.proposalCount.call();
-      await createProposal(undefined, undefined, alex);
+      await createProposal(undefined, undefined, undefined, alex);
       const nextProposalCount = await referenda.proposalCount.call();
       expect(prevProposalCount.add(toBN(1)).eq(nextProposalCount)).to.be.true;
 
@@ -50,13 +50,12 @@ contract("Referenda", function (accounts) {
       expect(proposal.id.eq(toBN(1))).to.be.true;
     });
     it("should create a proposal with status open", async function () {
-      await createProposal(undefined, undefined, alex);
+      await createProposal(undefined, undefined, undefined, alex);
       const proposal = await referenda.proposalWithId(1);
       expect(proposal.id.eq(toBN(1))).to.be.true;
     });
     it("should create a proposal that closes in 3 weeks", async function () {
-      const isPM = await registry.hasPMRole.call(alex);
-      expect(isPM).to.be.true;
+      await createProposal(undefined, undefined, undefined, alex);
 
       const prevProposalCount = await referenda.proposalCount.call();
       await createProposal(undefined, undefined, alex);
@@ -67,7 +66,7 @@ contract("Referenda", function (accounts) {
       expect(proposal.id.eq(toBN(1))).to.be.true;
     });
     it("should emit a ProposalCreated event when a proposal is created", async function() {
-      const tx = await createProposal(undefined, undefined, alex);
+      const tx = await createProposal(undefined, undefined, undefined, alex);
       const proposalCount = await getProposalCount();
       const eventLog = tx.logs[0];
       const eventEmitted = (eventLog.event == "ProposalCreated");
@@ -82,10 +81,16 @@ contract("Referenda", function (accounts) {
     });
   });
 
-  async function createProposal(link, script, from) {
+  async function createProposal(link, payoutAmount, payoutRecipient, from) {
     link = link || crypto.randomBytes(32);
-    script = script || crypto.randomBytes(32);
-    return await referenda.createProposal.sendTransaction(link, script, { from: from });
+    payoutAmount = payoutAmount || 0;
+    payoutRecipient = payoutRecipient || zeroAddress;
+    return await referenda.createProposal.sendTransaction(
+      link,
+      payoutAmount,
+      payoutRecipient,
+      { from: from }
+    );
   }
 
   async function getProposalCount() {

@@ -7,7 +7,13 @@ import "./Registry.sol";
 contract Referenda {
     string public constant name = "Web3 Mastermind Groups PM Referenda";
 
-    event ProposalCreated(uint256 indexed id, address indexed proposer, uint indexed dateClosed);
+    event ProposalCreated(
+        uint256 indexed id,
+        address indexed proposer,
+        uint indexed dateClosed,
+        uint256 payoutAmount,
+        address payoutRecipient
+    );
 
     enum Status { OPEN, ACCEPTED, REJECTED }
 
@@ -54,12 +60,19 @@ contract Referenda {
     constructor(address _registryAddress) public {
         registryAddress = _registryAddress;
     }
-
-    function createProposal(bytes32 link, bytes32 script) public onlyPMs(msg.sender) returns (uint256) {
+/**
+ * @dev Because the struct includes a mapping it must be created using a storage
+ * reference to ensure the assigned values get added to state.
+ */
+    function createProposal(
+        bytes32 link,
+        uint256 payoutAmount,
+        address payoutRecipient
+    ) public onlyPMs(msg.sender) returns (uint256) {
         uint256 id = proposalCount + 1;
         Proposal storage proposal = proposalWithId[id];
         proposal.id = id;
-
+        proposal.status = Status.OPEN;
         proposal.proposer = msg.sender;
 
         uint dateOpened = block.timestamp;
@@ -68,12 +81,18 @@ contract Referenda {
         proposal.dateClosed = dateClosed;
 
         proposal.link = link;
-        proposal.script = script;
-        proposal.status = Status.OPEN;
+        proposal.payoutAmount = payoutAmount;
+        proposal.payoutRecipient = payoutRecipient;
 
         proposalCount = id;
 
-        emit ProposalCreated(id, msg.sender, dateClosed);
+        emit ProposalCreated(
+            id,
+            msg.sender,
+            dateClosed,
+            payoutAmount,
+            payoutRecipient
+        );
 
         return proposalCount;
     }
