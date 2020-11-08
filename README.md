@@ -1,77 +1,45 @@
 # Web3 Mastermind Groups PM Suite
 
-Premium members in W3MG have the opportunity to help shape the protocols used in Web3 Mastermind Groups by voting on proposals. Any PM can submit a proposal and all are encouraged to vote on each proposal.
+This suite of smart contracts are the interface by which governance in the Web3 Mastermind Groups is conducted.
 
-This suite of smart contracts are the interface by which the aforementioned governance process is conducted.
+Premium members (PMs) in W3MG have the opportunity to help shape the practices of the community by voting on proposals.
 
-## Usage
+## Overview
 
-Clone this repository
+The PM suite maintains an administrator role that gives a single Ethereum address the ability to register PMs and fund the pool.
 
-Run `npm run dev`
+Any registered PM can submit a proposal and all are encouraged to vote on each proposal. Proposals can relate to any
+measure and most commonly describe how funds in the pool should be allocated. Once a funds proposal passes, funds are immediately distributed.
 
-This will start a local ganache blockchain, migrate the contracts to it, and launch a React.js web app
+## Demo
 
-### Production
+To demo how this governance process works, run the commands below in your terminal.
+Note that on the local network demo proposals close after 15 minutes as opposed to 3 weeks.
 
-To interact with the application on a live network, run `npm run prod`
+`git clone <url>`
+`cd pm`
+`npm install`
+`npm run dev`
 
-### Testing
+This will start a local ganache blockchain, migrate the contracts to it, and launch a React.js web app.
 
-To test the contracts run `truffle test`
+In the terminal, you will see a 2 private keys for an authorized accounts that can create proposals.
+Copy one of the keys to your pasteboard/clipboard (e.g. `CMD + c`).
 
-## How It Works
+Navigate to `localhost:3000` in your browser and approve the app's request for access to your Metamask accounts.
+You will then see your connected Ethereum address.
+Using metamask, create a new account and paste in the private key you copied.
+With this account you can create a new proposal and vote on it.
 
-### PM Registry
+### Mainnet / Testnet
 
-Individauls wanting to participate in W3MG as a premium member must purchase a subscription.
+To interact with the application on a live network, run `npm run prod` and select
+Kovan on Metamask.
 
-Their Ethereum address is then added to the PM Registry contract.
+## Testing
 
-### PM Pool
+To run the test suite, run the command `truffle test`.
 
-Each week, ETH is sent to the PM Pool contract. The amount of ETH placed in the contract at a time is equal to `C * R` where `C` is the weekly cost in USD of a premium membership subscription and `R` is the number of Ethereum addresses registered in the PM Registry.
+## Specification
 
-### PM Referenda
-
-With the PM Referenda contract, registered Ethereum addresses can create a proposal, view open proposals, and vote on open proposals.
-
-Proposals can include a message which is a link to a simple Ceramic document that lives on IPFS.
-
-Proposals can alternatively have a script that executes if the propsal is accepted.
-
-- Every proposal is open for voting for 3 weeks
-- PMs are restricted to creating at most 1 proposal per week
-- PMs can change their vote on open proposals as often as they want during the voting period
-- All votes are blind commits and are revealed when the voting period ends
-- In order for a propsal to be accepted, at least 10% of registered PMs must vote on it, and more than 50% of the votes cast must be "in favor"
-- When the voting period ends any PM can reveal the result
-- Executable proposals are executed as soon as their votes are revealed and if the proposal is accepted
-
-### Proposal Statuses
-
-```
-Status {
-  OPEN
-  ACCEPTED
-  REJECTED
-}
-```
-
-### Proposal Metadata
-
-```
-Proposal {
-  status: Status
-  message: ceramic_ipfs_url
-  script: bytes
-  votes: number
-  yeas: number
-  closes: block.timestamp
-}
-```
-
-## Additional Information
-
-The PM suite maintains an administrator role that gives an Ethereum address the ability to register PMs, fund the pool, and has all PM privileges but is not a registered PM.
-
+The technical specification for the PM Suite can be found here: [specs](./specs)
