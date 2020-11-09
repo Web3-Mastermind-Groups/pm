@@ -18,7 +18,7 @@ Proposals can include a message which is a link to a simple Ceramic document tha
 
 Proposals can alternatively have a script that executes if the propsal is accepted.
 
-- [ ] Every proposal is open for voting for 3 weeks
+- [x] Every proposal is open for voting for 3 weeks
 
 - [ ] PMs are restricted to creating at most 1 proposal per week
 

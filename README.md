@@ -42,4 +42,4 @@ To run the test suite, run the command `truffle test`.
 
 ## Specification
 
-The technical specification for the PM Suite can be found here: [specs](./specs)
+The technical specification for the PM Suite can be found here: [docs](./docs)
