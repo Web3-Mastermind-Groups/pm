@@ -1,7 +1,8 @@
 {
     "root": true,
     "globals": {
-        "ethereum": true
+        "ethereum": true,
+        "process": true
     },
     "env": {
         "browser": true,

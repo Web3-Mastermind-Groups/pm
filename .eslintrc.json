@@ -1,5 +1,8 @@
 {
     "root": true,
+    "globals": {
+        "__dirname": true
+    },
     "env": {
         "browser": true,
         "commonjs": true,
