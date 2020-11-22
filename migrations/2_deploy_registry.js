@@ -15,7 +15,6 @@ module.exports = function(deployer, network, accounts) {
     console.log(whitespace, "DEFAULT_ADMIN_ROLE:", await contract.getRoleMember.call(DEFAULT_ADMIN_ROLE, 0));
 
     const response = await contract.grantRole(PM_ROLE, primary);
-    console.log(response);
     const log = response.logs[0];
     if (log.event === "RoleGranted") {
       // console.log(whitespace, , log.args.account);
