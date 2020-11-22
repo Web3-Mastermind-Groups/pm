@@ -13,6 +13,10 @@ measure and most commonly describe how funds in the pool should be allocated. On
 
 ## Demo
 
+### Requirements
+
+To run locally you must have [Node.js](https://nodejs.org/en/), [Truffle](https://github.com/trufflesuite/truffle) and [Ganache CLI](https://github.com/trufflesuite/ganache-cli) installed.
+
 To demo how this governance process works, run the commands below in your terminal.
 Note that on the local network demo proposals close after 15 minutes as opposed to 3 weeks.
 
@@ -26,9 +30,10 @@ This will start a local ganache blockchain, migrate the contracts to it, and lau
 In the terminal, you will see a 2 private keys for an authorized accounts that can create proposals.
 Copy one of the keys to your pasteboard/clipboard (e.g. `CMD + c`).
 
-Navigate to `localhost:3000` in your browser and approve the app's request for access to your Metamask accounts.
+Navigate to `localhost:3000` in your browser and click connect.
+In Metamask, approve the app's request for access to your accounts.
 You will then see your connected Ethereum address.
-Using metamask, create a new account and paste in the private key you copied.
+Using Metamask, import a new account and paste in the private key you copied.
 With this account you can create a new proposal and vote on it.
 
 ### Mainnet / Testnet
@@ -38,7 +43,7 @@ Kovan on Metamask.
 
 ## Testing
 
-To run the test suite, run the command `truffle test`.
+To run the test suite, run the command `npm run test:contracts`.
 
 ## Specification
 
