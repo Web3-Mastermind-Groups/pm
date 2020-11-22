@@ -1,11 +1,11 @@
-/**
- * Returns connected Ethereum accounts.
- */
-export async function connect() {
-  if (typeof window.ethereum !== "undefined") {
-    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-    return accounts;
-  } else {
-    throw Error("Could not find ethereum in window.");
+import Web3 from "web3";
+
+export async function createReferendaProposal(contract, from, link, value, recipient) {
+  link = Web3.utils.fromAscii(link);
+  try {
+    const txReceipt = await contract.methods.createProposal(link, value, recipient).send({ from });
+    return [null, txReceipt];
+  } catch (error) {
+    return [error.message, null];
   }
 }
