@@ -24,6 +24,7 @@
     "start:ganache": "ganache-cli --mnemonic 'note flavor live ripple hold salute future drum robot book captain acoustic'",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:contracts": "NODE_PATH=. truffle test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
