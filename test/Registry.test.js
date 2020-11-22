@@ -2,7 +2,7 @@ const expect = require("chai").expect;
 
 const Registry = artifacts.require("Registry");
 
-const { PM_ROLE } = require("./utils");
+const { PM_ROLE } = require("../utils/contracts");
 
 contract("Registry", function (accounts) {
   const admin = accounts[0];

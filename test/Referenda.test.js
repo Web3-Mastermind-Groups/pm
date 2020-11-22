@@ -1,13 +1,14 @@
 const crypto = require("crypto");
-const { create } = require("domain");
 const expect = require("chai").expect;
 const web3 = require("web3");
 
 const {
   ONE_ETH_IN_WEI,
-  PM_ROLE,
   SECONDS_IN_WEEK
-} = require("./utils");
+} = require("../utils/test");
+const {
+  PM_ROLE
+} = require("../utils/contracts");
 
 const Referenda = artifacts.require("Referenda");
 const Registry = artifacts.require("Registry");
