@@ -1,28 +1,27 @@
 import React from "react";
 import { Button } from "@chakra-ui/core";
 
-import { connect } from "../modules/ethereum";
+import Context from "../context";
 
 function ConnectButton() {
-    const [connecting, setConnecting] = React.useState(false);
-    const [connected, setConnected] = React.useState(false);
+    const state = React.useContext(Context);
     const [error, setError] = React.useState(null);
-    const [accounts, setAccounts] = React.useState([]);
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(stopLoadingWhenConnected, [state]);
+    function stopLoadingWhenConnected() {
+      if (state.ethereumConnected) {
+        setLoading(false);
+      }
+    }
 
     async function handleConnect() {
       setError(null);
-      setConnecting(true);
-      try {
-        const connectedAccounts = await connect();
-        setAccounts(connectedAccounts);
-      } catch(err) {
-        setError(err);
-      }
-      setConnected(true);
-      setConnecting(false);
+      state.setStartEthereum(true);
+      setLoading(true);
     }
 
-    function renderAccounts() {
+    function renderAccounts(accounts) {
       return accounts.map((account) => {
         return <div key={account}>{account}</div>;
       });
@@ -31,15 +30,15 @@ function ConnectButton() {
     return (
       <div>
         {error && <div>{error}</div>}
-        {!connected && (
-          <Button isLoading={connecting} variantColor="green" onClick={handleConnect}>
+        {!state.ethereumConnected && (
+          <Button isLoading={loading} variantColor="green" onClick={handleConnect}>
             Connect
           </Button>
         )}
-        {connected && (
+        {state.ethereumConnected && (
           <div>
             <div>Connected accounts:</div>
-            {renderAccounts()}
+            {renderAccounts(state.ethereumAccounts)}
           </div>
         )}
       </div>
