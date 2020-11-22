@@ -20,7 +20,7 @@
     "web3": "^1.3.0"
   },
   "scripts": {
-    "start:app": "NODE_PATH=. truffle migrate && FORCE_COLOR=true react-scripts start | cat",
+    "start:app": "NODE_PATH=. truffle migrate --network ganache && FORCE_COLOR=true react-scripts start | cat",
     "start:ganache": "ganache-cli --mnemonic 'note flavor live ripple hold salute future drum robot book captain acoustic'",
     "build": "react-scripts build",
     "test": "react-scripts test",
