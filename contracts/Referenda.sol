@@ -3,9 +3,35 @@ pragma solidity ^0.6.12;
 
 import "./Registry.sol";
 
-
+/**
+ * @title Web3 Mastermind Groups PM Referenda
+ * @author valmack2020@gmail.com
+ * @notice Web3MG PMs can create and vote on proposals
+ */
 contract Referenda {
+    /**
+     * @notice Returns the descriptive name of this contract
+     * @return Name
+     */
     string public constant name = "Web3 Mastermind Groups PM Referenda";
+
+    /**
+     * @notice Returns the bytes of the proposal with the given id
+     * @return Bytes representing the proposal
+     */
+    mapping(uint256 => Proposal) public proposalWithId;
+
+    /**
+     * @notice Returns number of proposals created by this contract 
+     * @return Proposal count
+     */
+    uint256 public proposalCount;
+
+    /**
+     * @notice Returns the address of the registry used by this contract
+     * @return Registry contract address
+     */
+    address public registryAddress;
 
     event ProposalCreated(
         uint256 indexed id,
@@ -30,13 +56,6 @@ contract Referenda {
         uint256 voteCount;
         uint256 yeaCount;
     }
-
-    mapping(uint256 => Proposal) public proposalWithId;
-
-    uint256 public proposalCount;
-
-    address public registryAddress;
-
     modifier onlyAdmin() {
         (
             bool success,
@@ -60,10 +79,11 @@ contract Referenda {
     constructor(address _registryAddress) public {
         registryAddress = _registryAddress;
     }
-/**
- * @dev Because the struct includes a mapping it must be created using a storage
- * reference to ensure the assigned values get added to state.
- */
+
+    /**
+     * @dev Because the struct includes a mapping it must be created using a storage
+     * reference to ensure the assigned values get added to state.
+     */
     function createProposal(
         bytes32 link,
         uint256 payoutAmount,
