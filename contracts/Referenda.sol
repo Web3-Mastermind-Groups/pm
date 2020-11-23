@@ -52,10 +52,12 @@ contract Referenda {
         address payoutRecipient;
         address proposer;
         Status status;
-        mapping(address => bytes32) voteCastBy;
+        mapping(address => bytes32) voteCastBy; // (voter => voteHash)
+        mapping(uint256 => address) voters; // (voteCount => voter)
         uint256 voteCount;
-        uint256 yeaCount;
+        uint256 yesCount;
     }
+
     modifier onlyAdmin() {
         (
             bool success,
@@ -76,13 +78,21 @@ contract Referenda {
         _;
     }
 
+    /**
+     * @notice Sets the Registry contract for this contract to use
+     * @param _registryAddress Address of Registry contract
+     */
     constructor(address _registryAddress) public {
         registryAddress = _registryAddress;
     }
 
     /**
-     * @dev Because the struct includes a mapping it must be created using a storage
-     * reference to ensure the assigned values get added to state.
+     * @notice Create a proposal to vote on (if caller is PM)
+     * @notice Emits a ProposalCreated event
+     * @param link Bytes representing url of proposal metadata
+     * @param payoutAmount Funds from balance to send if this proposal passes
+     * @param payoutRecipient Recipient of funds if this proposal passes
+     * @return Id of the proposal
      */
     function createProposal(
         bytes32 link,
@@ -90,6 +100,9 @@ contract Referenda {
         address payoutRecipient
     ) public onlyPMs(msg.sender) returns (uint256) {
         uint256 id = proposalCount + 1;
+
+        // Because the struct includes a mapping it must be created using a
+        // storage reference to ensure the assigned values get added to state.
         Proposal storage proposal = proposalWithId[id];
         proposal.id = id;
         proposal.status = Status.OPEN;
@@ -115,5 +128,46 @@ contract Referenda {
         );
 
         return proposalCount;
+    }
+
+    /**
+     * @notice Adds a vote to the specified proposal and emits an event
+     * @notice Emits a VoteCounted event
+     * @param proposalId Id of proposal to vote on
+     * @param yes True to vote in favor of accepting the proposal
+     * @param voteHash TODO
+     * @param nonce Random integer used to create vote hash
+     * @return Updated vote count
+     */
+    function vote(
+        uint256 proposalId,
+        bool yes,
+        bytes32 voteHash,
+        uint256 nonce
+    ) public onlyPMs(msg.sender) returns (uint256) {
+        Proposal storage proposal = proposalWithId[proposalId];
+
+        require(proposal.id > 0, "Proposal with specified id does not exist");
+        require(proposal.dateClosed >= block.timestamp, "Voting period closed");
+        require(voteHash != 0, "Vote hash is required");
+        require(proposal.voteCastBy[msg.sender] == 0, "One vote per voter. Vote already cast.");
+
+        uint256 currVoteCount = proposal.voteCount;
+        uint256 nextVoteCount = currVoteCount + 1;
+        // TODO: Check voteHash
+        // address prevVoter = proposal.voters[currVoteCount]
+        // _voteHash = keccak256(msg.sender, proposalId, yes, prevVoter, nonce);
+        // require(voteHash == _voteHash, "Invalid `voteHash`");
+
+        proposal.voteCastBy[msg.sender] = voteHash;
+        if (yes) {
+            uint256 currYesCount = proposal.yesCount;
+            proposal.yesCount = currYesCount + 1;
+        }
+        proposal.voteCount = nextVoteCount;
+
+        // TODO: Emit event
+
+        return nextVoteCount;
     }
 }

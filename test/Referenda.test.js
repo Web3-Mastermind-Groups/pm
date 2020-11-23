@@ -25,7 +25,6 @@ contract("Referenda", function (accounts) {
   let registry;
 
   describe("createProposal", function () {
-
     beforeEach(async function () {
       registry = await Registry.new();
       referenda = await Referenda.new(registry.address);
@@ -38,8 +37,18 @@ contract("Referenda", function (accounts) {
       const bethIsPM = await registry.hasPMRole.call(beth);
       expect(bethIsPM).to.be.false;
 
-      expect(async () => await createProposal(undefined, undefined, undefined, admin)).to.throw;
-      expect(async () => await createProposal(undefined, undefined, undefined, beth)).to.throw;
+      try {
+        await createProposal(undefined, undefined, undefined, admin);
+      } catch (error) {
+        console.log("Caught error:", error.message);
+        expect(error).to.not.be.undefined;
+      }
+      try {
+        await createProposal(undefined, undefined, undefined, beth);
+      } catch (error) {
+        console.log("Caught error:", error.message);
+        expect(error).to.not.be.undefined;
+      }
     });
     it("should create a proposal with id equal to previous proposalCount + 1", async function () {
       const isPM = await registry.hasPMRole.call(alex);
@@ -91,6 +100,73 @@ contract("Referenda", function (accounts) {
     });
   });
 
+  describe("vote", function () {
+    let proposalId;
+
+    beforeEach(async function () {
+      registry = await Registry.new();
+      referenda = await Referenda.new(registry.address);
+      await registry.grantRole(PM_ROLE, alex);
+      await registry.grantRole(PM_ROLE, beth);
+      const tx = await createProposal(undefined, undefined, undefined, alex);
+      const eventLog = tx.logs[0];
+      proposalId = eventLog.args.id;
+    });
+
+    it("should revert if caller is not PM", async function () {
+      const from = admin;
+      try {
+        await vote(proposalId, undefined, undefined, undefined, from);
+      } catch (error) {
+        console.log("Caught error:", error.message);
+        expect(error).to.not.be.undefined;
+      }
+    });
+
+    it("should revert if voting period is not open", function () {
+      // TODO
+    });
+
+    it("should revert if proposal does not exist", async function () {
+      const from = alex;
+      try {
+        await vote(999, undefined, undefined, undefined, from);
+      } catch (error) {
+        console.log("Caught error:", error.message);
+        expect(error).to.not.be.undefined;
+      }
+    });
+
+    it("should revert if vote hash is not valid", function () {
+      // See valid vote hash algorithm
+      // TODO
+    });
+
+    it("should allow PM to vote", async function () {
+      const from = alex;
+      await vote(proposalId, undefined, undefined, undefined, from);
+      const proposalCount = await getProposalCount();
+      const proposal = await referenda.proposalWithId.call(proposalCount);
+      expect(proposal.voteCount == 1).to.be.true;
+      expect(proposal.yesCount == 1).to.be.true;
+    });
+
+    it("should revert if voter has already voted", async function () {
+      const from = alex;
+      await vote(proposalId, undefined, undefined, undefined, from);
+      const proposalCount = await getProposalCount();
+      const proposal = await referenda.proposalWithId.call(proposalCount);
+      expect(proposal.voteCount == 1).to.be.true;
+      expect(proposal.yesCount == 1).to.be.true;
+      try {
+        await vote(proposalId, undefined, undefined, undefined, from);
+      } catch (error) {
+        console.log("Caught error:", error.message);
+        expect(error).to.not.be.undefined;
+      }
+    });
+  });
+
   async function createProposal(link, payoutAmount, payoutRecipient, from) {
     link = link || crypto.randomBytes(32);
     payoutAmount = payoutAmount || 0;
@@ -105,6 +181,19 @@ contract("Referenda", function (accounts) {
 
   async function getProposalCount() {
     return await referenda.proposalCount.call();
+  }
+
+  async function vote(proposalId, yes, voteHash, nonce, from) {
+    yes = (typeof(yes) == "boolean") ? yes : true;
+    voteHash = voteHash || crypto.randomBytes(32);
+    nonce = nonce || 0;
+    return await referenda.vote.sendTransaction(
+      proposalId,
+      yes,
+      voteHash,
+      nonce,
+      { from: from }
+    );
   }
 });
 
