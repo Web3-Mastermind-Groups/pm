@@ -28,7 +28,7 @@
         "no-unused-expressions": 0,
 
         "chai-friendly/no-unused-expressions": 2,
-        "mocha/no-skipped-tests": "error",
-        "mocha/no-exclusive-tests": "error"
+        "mocha/no-skipped-tests": "warn",
+        "mocha/no-exclusive-tests": "warn"
     }
 }
