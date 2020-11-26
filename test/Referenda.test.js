@@ -4,7 +4,8 @@ const web3 = require("web3");
 
 const {
   ONE_ETH_IN_WEI,
-  SECONDS_IN_WEEK
+  SECONDS_IN_WEEK,
+  TimedWeb3
 } = require("../utils/test");
 const {
   PM_ROLE
@@ -104,14 +105,22 @@ contract("Referenda", function (accounts) {
     let proposalId;
 
     beforeEach(async function () {
+      await beforeEachSetup(undefined, admin);
+    });
+
+    async function beforeEachSetup(provider) {
+      if (provider) {
+        Registry.setProvider(provider);
+        Referenda.setProvider(provider);
+      }
       registry = await Registry.new();
       referenda = await Referenda.new(registry.address);
-      await registry.grantRole(PM_ROLE, alex);
-      await registry.grantRole(PM_ROLE, beth);
+      await registry.grantRole.sendTransaction(PM_ROLE, alex, { from: admin });
+      await registry.grantRole.sendTransaction(PM_ROLE, beth, { from: admin });
       const tx = await createProposal(undefined, undefined, undefined, alex);
       const eventLog = tx.logs[0];
       proposalId = eventLog.args.id;
-    });
+    }
 
     it("should revert if caller is not PM", async function () {
       const from = admin;
@@ -123,8 +132,20 @@ contract("Referenda", function (accounts) {
       }
     });
 
-    it("should revert if voting period is not open", function () {
-      // TODO
+    it("should revert if voting period is not open", async function () {
+      const timed = new TimedWeb3(new Date(), accounts);
+      await timed.setupAccounts();
+      await timed.fundAccount(admin, toBN("1034439500000000000"));
+      await timed.fundAccount(alex, toBN("10134439500000000000"));
+      await timed.fundAccount(beth, toBN("10134439500000000000"));
+      await beforeEachSetup(timed.provider);
+      await timed.increaseTime(SECONDS_IN_WEEK * 4);
+      try {
+        await vote(proposalId, undefined, undefined, undefined, beth);
+      } catch (error) {
+        console.log("Caught error:", error.message);
+        expect(error).to.not.be.undefined;
+      }
     });
 
     it("should revert if proposal does not exist", async function () {
@@ -173,7 +194,7 @@ contract("Referenda", function (accounts) {
     payoutRecipient = payoutRecipient || zeroAddress;
     return await referenda.createProposal.sendTransaction(
       link,
-      payoutAmount,
+      toBN(payoutAmount),
       payoutRecipient,
       { from: from }
     );
