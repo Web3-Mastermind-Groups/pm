@@ -5,7 +5,7 @@ const web3 = require("web3");
 const {
   ONE_ETH_IN_WEI,
   SECONDS_IN_WEEK,
-  TimedWeb3
+  TimedEvm
 } = require("../utils/test");
 const {
   PM_ROLE
@@ -102,10 +102,11 @@ contract("Referenda", function (accounts) {
   });
 
   describe("vote", function () {
+    let evm;
     let proposalId;
 
     beforeEach(async function () {
-      await beforeEachSetup(undefined, admin);
+      await beforeEachSetup(undefined);
     });
 
     async function beforeEachSetup(provider) {
@@ -122,6 +123,14 @@ contract("Referenda", function (accounts) {
       proposalId = eventLog.args.id;
     }
 
+    async function setupEvm(start = new Date()) {
+      evm = new TimedEvm(start, accounts);
+      await evm.setupAccounts();
+      await evm.fundAccount(admin, toBN("1034439500000000000"));
+      await evm.fundAccount(alex, toBN("10134439500000000000"));
+      await evm.fundAccount(beth, toBN("10134439500000000000"));
+    }
+
     it("should revert if caller is not PM", async function () {
       const from = admin;
       try {
@@ -133,13 +142,9 @@ contract("Referenda", function (accounts) {
     });
 
     it("should revert if voting period is not open", async function () {
-      const timed = new TimedWeb3(new Date(), accounts);
-      await timed.setupAccounts();
-      await timed.fundAccount(admin, toBN("1034439500000000000"));
-      await timed.fundAccount(alex, toBN("10134439500000000000"));
-      await timed.fundAccount(beth, toBN("10134439500000000000"));
-      await beforeEachSetup(timed.provider);
-      await timed.increaseTime(SECONDS_IN_WEEK * 4);
+      await setupEvm();
+      await beforeEachSetup(evm.provider);
+      await evm.increaseTime(SECONDS_IN_WEEK * 4);
       try {
         await vote(proposalId, undefined, undefined, undefined, beth);
       } catch (error) {

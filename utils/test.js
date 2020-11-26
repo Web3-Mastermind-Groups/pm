@@ -9,7 +9,7 @@ const SECONDS_IN_WEEK = 604800;
 
 const toBN = Web3.utils.toBN;
 
-class TimedWeb3 {
+class TimedEvm {
   /**
    * Creates web3 instance with provider that starts minin from specified time
    * @param {Date} start Date to start first block from. Defaults to now.
@@ -96,6 +96,6 @@ function getUnixTimestamp(date = "now") {
 module.exports = {
   ONE_ETH_IN_WEI,
   SECONDS_IN_WEEK,
-  TimedWeb3,
+  TimedEvm,
   getUnixTimestamp
 };
