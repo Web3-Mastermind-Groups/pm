@@ -93,9 +93,36 @@ function getUnixTimestamp(date = "now") {
   return Math.floor(ms / 1000);
 }
 
+async function generateVoteHash(contract, proposalId, voterAddress, voteType) {
+  assert(Web3.utils.isBN(proposalId) === true, "proposalId must be a BN object");
+  assert(Web3.utils.isAddress(voterAddress) === true, "voterAddress must be a valid ETH address");
+  assert(typeof voteType === "number", "voteType must be of type number");
+
+  const proposal = await contract.proposalWithId.call(proposalId);
+
+  const nonces = [];
+  // TODO: Check for slippage threshold with proposal vote count
+  for (let n = -1; n < proposal.voteCount; n++) {
+    nonces.push(getRandomInt(Number.MAX_SAFE_INTEGER));
+  }
+  const voteHash = Web3.utils.soliditySha3(
+    {type: "uint256", value: proposalId},
+    {type: "address", value: voterAddress},
+    {type: "uint8", value: voteType},
+    {type: "uint256[]", value: nonces}
+  );
+
+  return [voteHash, nonces];
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
 module.exports = {
   ONE_ETH_IN_WEI,
   SECONDS_IN_WEEK,
   TimedEvm,
-  getUnixTimestamp
+  getUnixTimestamp,
+  generateVoteHash
 };

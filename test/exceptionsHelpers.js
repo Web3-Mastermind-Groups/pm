@@ -1,5 +1,6 @@
 const errorString = "VM Exception while processing transaction: ";
 
+// TODO: Log the expect via param
 async function tryCatch(promise, reason) {
     try {
         await promise;

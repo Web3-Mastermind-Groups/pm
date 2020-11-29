@@ -5,16 +5,19 @@
 Casting a vote is a two part process with an off-chain and on-chain component.
 
 First, off-chain, the PM generates their vote by taking the hash of
-- their registered Ethereum address
-- the id of the proposal they are voting on
-- 0 for reject or 1 for accept
-- a random integer in the range ...
-- the hash of a previous vote selected at random of the 0 address if there are no previous votes
+1. the id of the proposal they are voting on
+2. their registered Ethereum address
+3. 0 for reject or 1 for accept
+4. the hash of a previous vote selected at random or the 0 address if there are no previous votes
+5. a random integer in the range 2^53 - 1
 
 Then the PM publishes this hash on chain in a transaction to the Referenda contract.
 
 A vote can be revealed by mining to generate this hash. Mining becomes more difficult as the number of votes cast increases, making it computationally expensive to determine the outcome of a proposal.
 
+### Notes
+
+The difficulty can be adjusted by an accepted vote.
 
 ## Finding Open Proposals
 

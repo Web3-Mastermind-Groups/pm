@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
+// ABIEncoderV2 is not considered experimental as of Solidity 0.6.0
+pragma experimental ABIEncoderV2;
 
 import "./Registry.sol";
 
@@ -16,10 +18,10 @@ contract Referenda {
     string public constant name = "Web3 Mastermind Groups PM Referenda";
 
     /**
-     * @notice Returns the bytes of the proposal with the given id
-     * @return Bytes representing the proposal
+     * @notice Returns the address of the registry used by this contract
+     * @return Registry contract address
      */
-    mapping(uint256 => Proposal) public proposalWithId;
+    uint8 public constant MAX_VOTES_PER_TALLY = 100;
 
     /**
      * @notice Returns number of proposals created by this contract 
@@ -33,6 +35,14 @@ contract Referenda {
      */
     address public registryAddress;
 
+    /**
+     * @notice Returns the bytes of the proposal with the given id
+     * @return Bytes representing the proposal
+     */
+    mapping(uint256 => Proposal) public proposalWithId;
+
+    enum Status { OPEN, ACCEPTED, REJECTED }
+
     event ProposalCreated(
         uint256 indexed id,
         address indexed proposer,
@@ -41,7 +51,11 @@ contract Referenda {
         address payoutRecipient
     );
 
-    enum Status { OPEN, ACCEPTED, REJECTED }
+    event VoteCast(
+        uint256 indexed proposalId,
+        address indexed voter,
+        uint256 indexed voteCount
+    );
 
     struct Proposal {
         uint dateOpened;
@@ -53,8 +67,12 @@ contract Referenda {
         address proposer;
         Status status;
         mapping(address => bytes32) voteCastBy; // (voter => voteHash)
-        mapping(uint256 => address) voters; // (voteCount => voter)
+        mapping(uint256 => address) voterWithId; // (voteCount => voter)
+        mapping(address => uint8) voteTalliedFor; // (voter => true/false)
+        mapping(address => uint8) voteInvalidFor; // (voter => true/false)
         uint256 voteCount;
+        uint256 talliedCount;
+        uint256 invalidCount;
         uint256 yesCount;
     }
 
@@ -84,6 +102,54 @@ contract Referenda {
      */
     constructor(address _registryAddress) public {
         registryAddress = _registryAddress;
+    }
+
+    /**
+     * @notice Returns hash of vote cast
+     * @param proposalId Id of proposal to retrieve vote hash from
+     * @param voter Address of voter to retrieve vote hash for
+     */
+    function getProposalVote(uint256 proposalId, address voter) public view returns(bytes32) {
+        Proposal storage proposal = proposalWithId[proposalId];
+
+        require(proposal.id > 0, "Proposal with given proposalId was not found");
+        return proposal.voteCastBy[voter];
+    }
+
+    /**
+     * @notice Returns address of voter
+     * @param proposalId Id of proposal to retrieve voter address from
+     * @param voterId Id of voter for this proposal
+     */
+    function getProposalVoterById(uint256 proposalId, uint256 voterId) public view returns(address) {
+        Proposal storage proposal = proposalWithId[proposalId];
+
+        require(proposal.id > 0, "Proposal with given proposalId was not found");
+        return proposal.voterWithId[voterId];
+    }
+
+    /**
+     * @notice Returns 1 if the voter's vote has been tallied, 0 otherwise
+     * @param proposalId Id of proposal to check tally for
+     * @param voter Address of voter to check tally for
+     */
+    function getProposalVoteTalliedByVoter(uint256 proposalId, address voter) public view returns(uint8) {
+        Proposal storage proposal = proposalWithId[proposalId];
+
+        require(proposal.id > 0, "Proposal with given proposalId was not found");
+        return proposal.voteTalliedFor[voter];
+    }
+
+    /**
+     * @notice Returns 1 if the voter's vote was found to be invalid, 0 otherwise
+     * @param proposalId Id of proposal to check invalid vote for
+     * @param voter Address of voter to check invalid vote for
+     */
+    function getProposalVoteInvalidByVoter(uint256 proposalId, address voter) public view returns(uint8) {
+        Proposal storage proposal = proposalWithId[proposalId];
+
+        require(proposal.id > 0, "Proposal with given proposalId was not found");
+        return proposal.voteInvalidFor[voter];
     }
 
     /**
@@ -134,40 +200,125 @@ contract Referenda {
      * @notice Adds a vote to the specified proposal and emits an event
      * @notice Emits a VoteCounted event
      * @param proposalId Id of proposal to vote on
-     * @param yes True to vote in favor of accepting the proposal
      * @param voteHash TODO
-     * @param nonce Random integer used to create vote hash
      * @return Updated vote count
      */
     function vote(
         uint256 proposalId,
-        bool yes,
-        bytes32 voteHash,
-        uint256 nonce
+        bytes32 voteHash
     ) public onlyPMs(msg.sender) returns (uint256) {
+        require(proposalId > 0, "Invalid proposalId. Can not be 0.");
+        // TODO: Check what an invalid value for bytes32
+        require(voteHash != bytes32(0), "Vote hash is required");
+
         Proposal storage proposal = proposalWithId[proposalId];
 
         require(proposal.id > 0, "Proposal with specified id does not exist");
         require(proposal.dateClosed >= block.timestamp, "Voting period closed");
-        require(voteHash != 0, "Vote hash is required");
         require(proposal.voteCastBy[msg.sender] == 0, "One vote per voter. Vote already cast.");
 
-        uint256 currVoteCount = proposal.voteCount;
-        uint256 nextVoteCount = currVoteCount + 1;
-        // TODO: Check voteHash
-        // address prevVoter = proposal.voters[currVoteCount]
-        // _voteHash = keccak256(msg.sender, proposalId, yes, prevVoter, nonce);
-        // require(voteHash == _voteHash, "Invalid `voteHash`");
-
+        uint256 nextVoteCount = proposal.voteCount + 1;
+        proposal.voterWithId[nextVoteCount] = msg.sender;
         proposal.voteCastBy[msg.sender] = voteHash;
-        if (yes) {
-            uint256 currYesCount = proposal.yesCount;
-            proposal.yesCount = currYesCount + 1;
-        }
         proposal.voteCount = nextVoteCount;
 
-        // TODO: Emit event
+        emit VoteCast(proposalId, msg.sender, proposal.voteCount);
 
         return nextVoteCount;
+    }
+
+    /**
+     * @notice Tallies the votes of `voterIds` and generates outcome if all
+     * all votes have been tallied 
+     * @notice Emits a VotesTallied event
+     * @dev Either explicitly or just due to normal operation, the number of
+     * iterations in a loop can grow beyond the block gas limit which can cause
+     * the complete contract to be stalled at a certain point.
+     * @param proposalId Id of proposal to tally votes for
+     * @param voterIds TODO
+     * @param nonces TODO
+     * @param voteHashes TODO
+     */
+    function tallyVotes(
+        uint256 proposalId,
+        uint256[] calldata voterIds,
+        uint256[][] calldata nonces,
+        bytes32[] calldata voteHashes
+    ) public {
+        require(proposalId > 0, "Invalid proposalId. Can not be 0.");
+        require(voterIds.length > 0, "Number of voterIds must be greater than 0");
+        require(voterIds.length < MAX_VOTES_PER_TALLY + 1, "Too many votes to tally in one call");
+        require(voterIds.length == nonces.length, "Number of voterIds does not match number of nonces");
+        require(voterIds.length == voteHashes.length, "Number of voterIds does not match number of voteHashes");
+
+        Proposal storage proposal = proposalWithId[proposalId];
+
+        require(proposal.id > 0, "Proposal with specified id does not exist");
+        require(proposal.dateClosed < block.timestamp, "Voting period must be closed");
+
+        for (uint idx = 0; idx < voterIds.length; idx++) {
+            uint256 voterId = voterIds[idx];
+            address voterAddress = proposal.voterWithId[voterId];
+
+            // If vote has not been tallied for this voter yet
+            if (proposal.voteTalliedFor[voterAddress] == 0) {
+                bytes32 voteHash = proposal.voteCastBy[voterAddress];
+                require(voteHash == voteHashes[idx], "Provided voteHash does not match stored");
+
+                uint256[] calldata voterNonces = nonces[idx];
+
+                bytes32 hashForRejectVote = keccak256(abi.encodePacked(
+                    proposalId,
+                    voterAddress,
+                    uint8(0),
+                    voterNonces
+                ));
+                bytes32 hashForAcceptVote = keccak256(abi.encodePacked(
+                    proposalId,
+                    voterAddress,
+                    uint8(1),
+                    voterNonces
+                ));
+
+                proposal.voteTalliedFor[voterAddress] = 1;
+                proposal.talliedCount++;
+                if (voteHash == hashForRejectVote) {
+                    // pass
+                } else if (voteHash == hashForAcceptVote) {
+                    proposal.yesCount++;
+                } else {
+                    proposal.voteInvalidFor[voterAddress] = 1;
+                    proposal.invalidCount++;
+                }
+            }
+        }
+        // TODO: Emit VotesTallied(proposalId, proposal.talliedCount, remaining);
+    }
+
+    /**
+     * @notice Returns if the proposal was accepted or rejected
+     * @notice Emits a ProposalStatusUpdated event
+     * @param proposalId Id of proposal to calculate outcome for
+     * @return Status of proposal
+     */
+    function calculateOutcome(uint256 proposalId) public returns (Status) {
+        Proposal storage proposal = proposalWithId[proposalId];
+        require(proposal.status == Status.OPEN, "Outcome already calculated. Check proposal status.");
+        return _calculateOutcome(proposal);
+    }
+
+    function _calculateOutcome(Proposal storage proposal) private returns (Status) {
+        require(proposal.talliedCount == proposal.voteCount, "All votes must be tallied first");
+        uint256 validVoteCount = proposal.voteCount - proposal.invalidCount;
+        uint256 acceptanceCriteria = validVoteCount / 2;
+        Status status;
+        if (proposal.yesCount > acceptanceCriteria) {
+            status = Status.ACCEPTED;
+        } else {
+            status = Status.REJECTED;
+        }
+        proposal.status = status;
+        // TODO: Emit ProposalStatusUpdated(proposalId, status);
+        return status;
     }
 }

@@ -10,9 +10,14 @@ const {
 const {
   PM_ROLE
 } = require("../utils/contracts");
+const { generateVoteHash } = require("../utils/test");
+const { catchRevert } = require("./exceptionsHelpers");
 
 const Referenda = artifacts.require("Referenda");
 const Registry = artifacts.require("Registry");
+
+const VOTE_HASH_INDEX = 0;
+// const NONCES_INDEX = 1;
 
 const toBN = web3.utils.toBN;
 
@@ -133,63 +138,59 @@ contract("Referenda", function (accounts) {
 
     it("should revert if caller is not PM", async function () {
       const from = admin;
-      try {
-        await vote(proposalId, undefined, undefined, undefined, from);
-      } catch (error) {
-        console.log("Caught error:", error.message);
-        expect(error).to.not.be.undefined;
-      }
+      await catchRevert(vote(proposalId, undefined, undefined, from));
     });
 
     it("should revert if voting period is not open", async function () {
       await setupEvm();
       await beforeEachSetup(evm.provider);
       await evm.increaseTime(SECONDS_IN_WEEK * 4);
-      try {
-        await vote(proposalId, undefined, undefined, undefined, beth);
-      } catch (error) {
-        console.log("Caught error:", error.message);
-        expect(error).to.not.be.undefined;
-      }
+      await catchRevert(vote(proposalId, undefined, undefined, beth));
     });
 
     it("should revert if proposal does not exist", async function () {
       const from = alex;
-      try {
-        await vote(999, undefined, undefined, undefined, from);
-      } catch (error) {
-        console.log("Caught error:", error.message);
-        expect(error).to.not.be.undefined;
-      }
+      await catchRevert(vote(toBN(999), undefined, undefined, from));
     });
 
-    it("should revert if vote hash is not valid", function () {
-      // See valid vote hash algorithm
-      // TODO
+    it("should revert if vote hash is not valid", async function () {
+      const from = alex;
+      const voteHash = web3.utils.asciiToHex(0);
+      await catchRevert(vote(proposalId, undefined, voteHash, from));
     });
 
     it("should allow PM to vote", async function () {
       const from = alex;
-      await vote(proposalId, undefined, undefined, undefined, from);
+      const [tx, voteHash, nonces] = await vote(proposalId, undefined, undefined, from); // eslint-disable-line
       const proposalCount = await getProposalCount();
       const proposal = await referenda.proposalWithId.call(proposalCount);
       expect(proposal.voteCount == 1).to.be.true;
-      expect(proposal.yesCount == 1).to.be.true;
+      const voterId = proposalCount;
+      const retrievedVoter = await referenda.getProposalVoterById.call(proposalId, voterId);
+      expect(retrievedVoter).to.equal(from);
+      const retrievedVote = await referenda.getProposalVote.call(proposalId, from);
+      expect(retrievedVote).to.equal(voteHash);
+    });
+
+    it("should emit an event when a vote is cast", async function() {
+      const from = alex;
+      const [tx, voteHash, nonces] = await vote(proposalId, undefined, undefined, from); // eslint-disable-line
+      const eventLog = tx.logs[0];
+      const loggedProposalId = eventLog.args.proposalId;
+      const loggedVoter = eventLog.args.voter;
+      const loggedVoteCount = eventLog.args.voteCount;
+      expect(loggedProposalId.eq(toBN(proposalId))).to.be.true;
+      expect(loggedVoter).to.equal(from);
+      expect(loggedVoteCount.eq(toBN(1))).to.be.true;
     });
 
     it("should revert if voter has already voted", async function () {
       const from = alex;
-      await vote(proposalId, undefined, undefined, undefined, from);
+      await vote(proposalId, undefined, undefined, from);
       const proposalCount = await getProposalCount();
       const proposal = await referenda.proposalWithId.call(proposalCount);
       expect(proposal.voteCount == 1).to.be.true;
-      expect(proposal.yesCount == 1).to.be.true;
-      try {
-        await vote(proposalId, undefined, undefined, undefined, from);
-      } catch (error) {
-        console.log("Caught error:", error.message);
-        expect(error).to.not.be.undefined;
-      }
+      await catchRevert(vote(proposalId, undefined, undefined, from));
     });
   });
 
@@ -209,17 +210,17 @@ contract("Referenda", function (accounts) {
     return await referenda.proposalCount.call();
   }
 
-  async function vote(proposalId, yes, voteHash, nonce, from) {
-    yes = (typeof(yes) == "boolean") ? yes : true;
-    voteHash = voteHash || crypto.randomBytes(32);
-    nonce = nonce || 0;
-    return await referenda.vote.sendTransaction(
-      proposalId,
-      yes,
+  async function vote(proposalId, yes = 0, voteHash, from) {
+    let nonces;
+    if (!voteHash) {
+      [voteHash, nonces] = await generateVoteHash(referenda, proposalId, from, yes);
+    }
+    const tx = await referenda.vote.sendTransaction(
+      toBN(proposalId),
       voteHash,
-      nonce,
       { from: from }
     );
+    return [tx, voteHash, nonces];
   }
 });
 
