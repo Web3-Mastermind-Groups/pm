@@ -1,5 +1,7 @@
 # Contracts
 
+### _**Not all the functionality described below is implemented.**_
+
 ### PM Registry
 
 Individauls wanting to participate in W3MG as a premium member must purchase a subscription.
@@ -14,49 +16,22 @@ Each week, ETH is sent to the PM Pool contract. The amount of ETH placed in the 
 
 With the PM Referenda contract, registered Ethereum addresses can create a proposal, view open proposals, and vote on open proposals.
 
-Proposals can include a message which is a link to a simple Ceramic document that lives on IPFS.
+Proposals can include a message in the form of a URI where some data is hosted.
 
 Proposals can alternatively have a script that executes if the propsal is accepted.
 
-- [x] Every proposal is open for voting for 3 weeks
+- [x] Every proposal is open for voting for a fixed duration
 
 - [ ] PMs are restricted to creating at most 1 proposal per week
 
-- [ ] PMs can change their vote on open proposals as often as they want during the voting period
+- [x] PMs can only vote once and can not change their vote
 
-- [ ] All votes are blind commits and are revealed when the voting period ends
+- [x] All votes are blind commits
 
-- [ ] In order for a propsal to be accepted, at least 10% of registered PMs must vote on it, and more than 50% of the votes cast must be "in favor"
+- [ ] In order for a propsal to be accepted at least 10% of registered PMs must vote on it
 
-- [ ] When the voting period ends any PM can reveal the result
+- [x] In order for a propsal to be accepted more than 50% of the votes cast must be to "accept"
+
+- [x] When the voting period ends anyone can reveal the result
 
 - [ ] Executable proposals are executed as soon as their votes are revealed and if the proposal is accepted
-
-### Proposal Statuses
-
-```
-Status {
-  OPEN
-  ACCEPTED
-  REJECTED
-}
-```
-
-### Proposal Metadata
-
-```
-Proposal {
-  dateOpened
-  dateClosed
-  funds
-  id
-  link
-  payoutAmount
-  payoutRecipient
-  proposer
-  status
-  voteCastBy
-  voteCount
-  yeaCount
-}
-```
