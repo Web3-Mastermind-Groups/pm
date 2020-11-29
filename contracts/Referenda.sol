@@ -24,6 +24,12 @@ contract Referenda {
     uint8 public constant MAX_VOTES_PER_TALLY = 100;
 
     /**
+     * @notice Returns true if contract functionality is stopped
+     * @return Stopped
+     */
+    bool public stopped = false;
+
+    /**
      * @notice Returns number of proposals created by this contract 
      * @return Proposal count
      */
@@ -74,6 +80,17 @@ contract Referenda {
         uint256 talliedCount;
         uint256 invalidCount;
         uint256 yesCount;
+    }
+
+
+    modifier stopInEmergency {
+        require(!stopped);
+        _;
+    }
+
+    modifier onlyInEmergency {
+        require(stopped);
+        _;
     }
 
     modifier onlyAdmin() {
@@ -133,7 +150,7 @@ contract Referenda {
      * @param proposalId Id of proposal to check tally for
      * @param voter Address of voter to check tally for
      */
-    function getProposalVoteTalliedByVoter(uint256 proposalId, address voter) public view returns(uint8) {
+    function getProposalTalliedVoteByVoter(uint256 proposalId, address voter) public view returns(uint8) {
         Proposal storage proposal = proposalWithId[proposalId];
 
         require(proposal.id > 0, "Proposal with given proposalId was not found");
@@ -145,7 +162,7 @@ contract Referenda {
      * @param proposalId Id of proposal to check invalid vote for
      * @param voter Address of voter to check invalid vote for
      */
-    function getProposalVoteInvalidByVoter(uint256 proposalId, address voter) public view returns(uint8) {
+    function getProposalInvalidVoteByVoter(uint256 proposalId, address voter) public view returns(uint8) {
         Proposal storage proposal = proposalWithId[proposalId];
 
         require(proposal.id > 0, "Proposal with given proposalId was not found");
@@ -164,7 +181,7 @@ contract Referenda {
         bytes32 link,
         uint256 payoutAmount,
         address payoutRecipient
-    ) public onlyPMs(msg.sender) returns (uint256) {
+    ) public onlyPMs(msg.sender) stopInEmergency returns (uint256) {
         uint256 id = proposalCount + 1;
 
         // Because the struct includes a mapping it must be created using a
@@ -197,6 +214,14 @@ contract Referenda {
     }
 
     /**
+     * @notice Removes proposal with id `proposalId`
+     * @dev This does not affect any other proposal and does not modify `proposalCount`
+     */
+    function removeProposal(uint256 proposalId) public onlyAdmin onlyInEmergency {
+        delete proposalWithId[proposalId];
+    }
+
+    /**
      * @notice Adds a vote to the specified proposal and emits an event
      * @notice Emits a VoteCounted event
      * @param proposalId Id of proposal to vote on
@@ -206,9 +231,8 @@ contract Referenda {
     function vote(
         uint256 proposalId,
         bytes32 voteHash
-    ) public onlyPMs(msg.sender) returns (uint256) {
+    ) public onlyPMs(msg.sender) stopInEmergency returns (uint256) {
         require(proposalId > 0, "Invalid proposalId. Can not be 0.");
-        // TODO: Check what an invalid value for bytes32
         require(voteHash != bytes32(0), "Vote hash is required");
 
         Proposal storage proposal = proposalWithId[proposalId];
@@ -228,8 +252,7 @@ contract Referenda {
     }
 
     /**
-     * @notice Tallies the votes of `voterIds` and generates outcome if all
-     * all votes have been tallied 
+     * @notice Tallies the votes of `voterIds`
      * @notice Emits a VotesTallied event
      * @dev Either explicitly or just due to normal operation, the number of
      * iterations in a loop can grow beyond the block gas limit which can cause
@@ -296,7 +319,15 @@ contract Referenda {
     }
 
     /**
-     * @notice Returns if the proposal was accepted or rejected
+     * @notice Sets stopped, disabling or enabling voting and proposal creation
+     * @param _stopped True to disable functionality, false to enable it
+     */
+    function setStopped(bool _stopped) public onlyAdmin {
+        stopped = _stopped;
+    }
+
+    /**
+     * @notice Returns status of closed proposal (accepted or rejected)
      * @notice Emits a ProposalStatusUpdated event
      * @param proposalId Id of proposal to calculate outcome for
      * @return Status of proposal

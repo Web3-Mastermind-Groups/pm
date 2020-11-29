@@ -30,19 +30,42 @@ contract("Referenda", function (accounts) {
   let referenda;
   let registry;
 
-  describe("createProposal", function () {
+  describe("setStopped", function () {
     beforeEach(async function () {
       registry = await Registry.new();
       referenda = await Referenda.new(registry.address);
       await registry.grantRole(PM_ROLE, alex);
     });
 
-    it("should revert if msg.sender is not a PM", async function() {
+    it("should revert if msg.sender is not an admin", async function() {
+      await catchRevert(referenda.setStopped.sendTransaction(true, { from: alex }));
+    });
+    it("should update the stopped property", async function() {
+      await referenda.setStopped.sendTransaction(true, {from: admin});
+      let stopped = await referenda.stopped.call();
+      expect(stopped).to.be.true;
+      await referenda.setStopped.sendTransaction(false, {from: admin});
+      stopped = await referenda.stopped.call();
+      expect(stopped).to.be.false;
+    });
+  });
+
+  describe("createProposal", function () {
+    beforeEach(async function () {
+      registry = await Registry.new();
+      referenda = await Referenda.new(registry.address);
+      await registry.grantRole(PM_ROLE, alex);
       const adminIsPM = await registry.hasPMRole.call(admin);
       expect(adminIsPM).to.be.false;
       const bethIsPM = await registry.hasPMRole.call(beth);
       expect(bethIsPM).to.be.false;
+    });
 
+    it("should revert if contract is stopped", async function() {
+      await referenda.setStopped.sendTransaction(true, {from: admin});
+      await catchRevert(createProposal(undefined, undefined, undefined, alex));
+    });
+    it("should revert if msg.sender is not a PM", async function() {
       try {
         await createProposal(undefined, undefined, undefined, admin);
       } catch (error) {
@@ -106,6 +129,45 @@ contract("Referenda", function (accounts) {
     });
   });
 
+  describe("removeProposal", function () {
+    let proposalId;
+
+    beforeEach(async function() {
+      registry = await Registry.new();
+      referenda = await Referenda.new(registry.address);
+      await registry.grantRole.sendTransaction(PM_ROLE, alex, { from: admin });
+      await registry.grantRole.sendTransaction(PM_ROLE, beth, { from: admin });
+      const tx = await createProposal(undefined, undefined, undefined, alex);
+      const eventLog = tx.logs[0];
+      proposalId = eventLog.args.id;
+    });
+
+    it("should revert if msg.sender is not an admin", async function() {
+      await referenda.setStopped.sendTransaction(true, {from: admin});
+      const stopped = await referenda.stopped.call();
+      expect(stopped).to.be.true;
+      await catchRevert(referenda.removeProposal.sendTransaction(proposalId, {from: alex}));
+    });
+    it("should revert if stopped is not true", async function() {
+      await referenda.setStopped.sendTransaction(false, {from: admin});
+      const stopped = await referenda.stopped.call();
+      expect(stopped).to.be.false;
+      await catchRevert(referenda.removeProposal.sendTransaction(proposalId), {from: admin});
+    });
+    it("should only remove the proposal with the given id", async function() {
+      let proposal1 = await referenda.proposalWithId(proposalId);
+      expect(proposal1.id.eq(toBN(1))).to.be.true;
+      await createProposal(undefined, undefined, undefined, beth);
+      await referenda.setStopped.sendTransaction(true, {from: admin});
+      await referenda.removeProposal.sendTransaction(proposalId, {from: admin});
+      proposal1 = await referenda.proposalWithId(proposalId);
+      expect(proposal1.id.eq(toBN(0))).to.be.true;
+      const proposal2 = await referenda.proposalWithId(2);
+      expect(proposal2.id.eq(toBN(2))).to.be.true;
+    });
+
+  });
+
   describe("vote", function () {
     let evm;
     let proposalId;
@@ -136,6 +198,12 @@ contract("Referenda", function (accounts) {
       await evm.fundAccount(beth, toBN("10134439500000000000"));
     }
 
+    it("should revert if contract is stopped", async function() {
+      await referenda.setStopped.sendTransaction(true, {from: admin});
+      const stopped = await referenda.stopped.call();
+      expect(stopped).to.be.true;
+      await catchRevert(vote(proposalId, undefined, undefined, alex));
+    });
     it("should revert if caller is not PM", async function () {
       const from = admin;
       await catchRevert(vote(proposalId, undefined, undefined, from));
