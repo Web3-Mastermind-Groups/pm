@@ -3,6 +3,7 @@ pragma solidity ^0.6.12;
 // ABIEncoderV2 is not considered experimental as of Solidity 0.6.0
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./Registry.sol";
 
 /**
@@ -11,6 +12,8 @@ import "./Registry.sol";
  * @notice Web3MG PMs can create and vote on proposals
  */
 contract Referenda {
+    using SafeMath for uint256;
+
     /**
      * @notice Returns the descriptive name of this contract
      * @return Name
@@ -40,6 +43,12 @@ contract Referenda {
      * @return Registry contract address
      */
     address public registryAddress;
+
+    /**
+     * @notice Returns number of minutes a proposal is open for voting
+     * @return Number of minutes
+     */
+    uint256 public votingPeriodMinutes;
 
     /**
      * @notice Returns the bytes of the proposal with the given id
@@ -116,9 +125,11 @@ contract Referenda {
     /**
      * @notice Sets the Registry contract for this contract to use
      * @param _registryAddress Address of Registry contract
+     * @param _votingPeriodMinutes Amount of minutes that each proposal is open for voting
      */
-    constructor(address _registryAddress) public {
+    constructor(address _registryAddress, uint256 _votingPeriodMinutes) public {
         registryAddress = _registryAddress;
+        votingPeriodMinutes = _votingPeriodMinutes;
     }
 
     /**
@@ -192,7 +203,7 @@ contract Referenda {
         proposal.proposer = msg.sender;
 
         uint dateOpened = block.timestamp;
-        uint dateClosed = dateOpened + 3 weeks;
+        uint dateClosed = dateOpened + votingPeriodMinutes.mul(60);
         proposal.dateOpened = dateOpened;
         proposal.dateClosed = dateClosed;
 
