@@ -8,6 +8,8 @@ This suite of smart contracts are the interface by which governance in the Web3 
 
 ## Demo
 
+[See a demo video here: https://www.youtube.com/watch?v=F1JolshtBhY](https://www.youtube.com/watch?v=F1JolshtBhY)
+
 ### Pre-requisites
 To run locally you must have [Node.js](https://nodejs.org/en/), [Truffle](https://github.com/trufflesuite/truffle) and [Ganache CLI](https://github.com/trufflesuite/ganache-cli) installed.
 
