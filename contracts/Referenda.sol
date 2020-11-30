@@ -24,7 +24,7 @@ contract Referenda {
      * @notice Returns the address of the registry used by this contract
      * @return Registry contract address
      */
-    uint8 public constant MAX_VOTES_PER_TALLY = 100;
+    uint8 public constant MAX_VOTES_PER_TALLY = 10;
 
     /**
      * @notice Returns true if contract functionality is stopped
@@ -76,7 +76,7 @@ contract Referenda {
         uint dateOpened;
         uint dateClosed;
         uint256 id;
-        bytes32 link;
+        string link;
         uint256 payoutAmount;
         address payoutRecipient;
         address proposer;
@@ -189,7 +189,7 @@ contract Referenda {
      * @return Id of the proposal
      */
     function createProposal(
-        bytes32 link,
+        string calldata link,
         uint256 payoutAmount,
         address payoutRecipient
     ) public onlyPMs(msg.sender) stopInEmergency returns (uint256) {
