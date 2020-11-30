@@ -23,8 +23,10 @@
     "start:app": "NODE_PATH=. truffle migrate --network ganache && FORCE_COLOR=true react-scripts start | cat",
     "start:ganache": "ganache-cli --mnemonic 'note flavor live ripple hold salute future drum robot book captain acoustic'",
     "build": "react-scripts build",
+    "truffle:compile": "NODE_PATH=. truffle compile",
+    "truffle:migrate": "NODE_PATH=. truffle migrate --network ganache",
+    "truffle:test": "NODE_PATH=. truffle test",
     "test": "react-scripts test",
-    "test:contracts": "NODE_PATH=. truffle test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
