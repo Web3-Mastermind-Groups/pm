@@ -1,4 +1,3 @@
-const crypto = require("crypto");
 const expect = require("chai").expect;
 const web3 = require("web3");
 
@@ -16,10 +15,9 @@ const { catchRevert } = require("./exceptionsHelpers");
 const Referenda = artifacts.require("Referenda");
 const Registry = artifacts.require("Registry");
 
-const VOTE_HASH_INDEX = 0;
-// const NONCES_INDEX = 1;
-
 const toBN = web3.utils.toBN;
+
+const VOTING_PERIOD_MINUTES = 5;
 
 contract("Referenda", function (accounts) {
   const admin = accounts[0];
@@ -33,7 +31,7 @@ contract("Referenda", function (accounts) {
   describe("setStopped", function () {
     beforeEach(async function () {
       registry = await Registry.new();
-      referenda = await Referenda.new(registry.address);
+      referenda = await Referenda.new(registry.address, toBN(VOTING_PERIOD_MINUTES));
       await registry.grantRole(PM_ROLE, alex);
     });
 
@@ -53,7 +51,7 @@ contract("Referenda", function (accounts) {
   describe("createProposal", function () {
     beforeEach(async function () {
       registry = await Registry.new();
-      referenda = await Referenda.new(registry.address);
+      referenda = await Referenda.new(registry.address, toBN(VOTING_PERIOD_MINUTES));
       await registry.grantRole(PM_ROLE, alex);
       const adminIsPM = await registry.hasPMRole.call(admin);
       expect(adminIsPM).to.be.false;
@@ -66,18 +64,8 @@ contract("Referenda", function (accounts) {
       await catchRevert(createProposal(undefined, undefined, undefined, alex));
     });
     it("should revert if msg.sender is not a PM", async function() {
-      try {
-        await createProposal(undefined, undefined, undefined, admin);
-      } catch (error) {
-        console.log("Caught error:", error.message);
-        expect(error).to.not.be.undefined;
-      }
-      try {
-        await createProposal(undefined, undefined, undefined, beth);
-      } catch (error) {
-        console.log("Caught error:", error.message);
-        expect(error).to.not.be.undefined;
-      }
+        await catchRevert(createProposal(undefined, undefined, undefined, admin));
+        await catchRevert(createProposal(undefined, undefined, undefined, beth));
     });
     it("should create a proposal with id equal to previous proposalCount + 1", async function () {
       const isPM = await registry.hasPMRole.call(alex);
@@ -104,13 +92,14 @@ contract("Referenda", function (accounts) {
       const proposal = await referenda.proposalWithId(1);
       expect(proposal.status.eq(toBN(0))).to.be.true;
     });
-    it("should create a proposal that closes in 3 weeks", async function () {
+    it("should create a proposal that closes in `votingPeriodMinutes` minutes", async function () {
+      const votingPeriodMinutes = await referenda.votingPeriodMinutes();
       await createProposal(undefined, undefined, undefined, alex);
 
       const proposal = await referenda.proposalWithId(1);
       expect(proposal.dateOpened.lt(proposal.dateClosed)).to.be.true;
 
-      const expectedDiff = toBN(SECONDS_IN_WEEK * 3);
+      const expectedDiff = votingPeriodMinutes.mul(toBN(60));
       const actualDiff = proposal.dateClosed.sub(proposal.dateOpened);
       expect(actualDiff.eq(expectedDiff)).to.be.true;
     });
@@ -134,7 +123,7 @@ contract("Referenda", function (accounts) {
 
     beforeEach(async function() {
       registry = await Registry.new();
-      referenda = await Referenda.new(registry.address);
+      referenda = await Referenda.new(registry.address, toBN(VOTING_PERIOD_MINUTES));
       await registry.grantRole.sendTransaction(PM_ROLE, alex, { from: admin });
       await registry.grantRole.sendTransaction(PM_ROLE, beth, { from: admin });
       const tx = await createProposal(undefined, undefined, undefined, alex);
@@ -182,7 +171,7 @@ contract("Referenda", function (accounts) {
         Referenda.setProvider(provider);
       }
       registry = await Registry.new();
-      referenda = await Referenda.new(registry.address);
+      referenda = await Referenda.new(registry.address, toBN(VOTING_PERIOD_MINUTES));
       await registry.grantRole.sendTransaction(PM_ROLE, alex, { from: admin });
       await registry.grantRole.sendTransaction(PM_ROLE, beth, { from: admin });
       const tx = await createProposal(undefined, undefined, undefined, alex);
@@ -263,7 +252,7 @@ contract("Referenda", function (accounts) {
   });
 
   async function createProposal(link, payoutAmount, payoutRecipient, from) {
-    link = link || crypto.randomBytes(32);
+    link = link || "ipfs://123";
     payoutAmount = payoutAmount || 0;
     payoutRecipient = payoutRecipient || zeroAddress;
     return await referenda.createProposal.sendTransaction(
@@ -278,7 +267,7 @@ contract("Referenda", function (accounts) {
     return await referenda.proposalCount.call();
   }
 
-  async function vote(proposalId, yes = 0, voteHash, from) {
+  async function vote(proposalId, yes = 1, voteHash, from) {
     let nonces;
     if (!voteHash) {
       [voteHash, nonces] = await generateVoteHash(referenda, proposalId, from, yes);
