@@ -1,20 +1,12 @@
 import React from "react";
-import Proposal from "../components/Proposal";
 import ProposalForm from "../components/ProposalForm";
+import ProposalList from "../components/ProposalList";
 
 function Home() {
-  const proposals = [{id: 1}];
-
-  function renderProposals() {
-    return proposals.map((prop) => {
-      return <Proposal key={prop.id} {...prop} />;
-    });
-  }
-
   return (
     <div>
       <ProposalForm />
-      {renderProposals()}
+      <ProposalList />
     </div>
   );
 }

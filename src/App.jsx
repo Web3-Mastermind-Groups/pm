@@ -4,7 +4,7 @@ import Ethereum from "./components/Ethereum";
 import Context from "./context";
 import Home from "./views/Home";
 
-import { createReferendaProposal, generateVoteHash } from "./modules/ethereum";
+import { createReferendaProposal, generateVoteHash, vote } from "./modules/ethereum";
 
 function App() {
   const [web3, setWeb3] = React.useState(null);
@@ -25,7 +25,8 @@ function App() {
     ethereumAccounts,
     setEthereumAccounts,
     createReferendaProposal: async (...args) => await createReferendaProposal(referenda, web3.eth.defaultAccount, ...args),
-    generateVoteHash: async (...args) => await generateVoteHash(referenda, web3.eth.defaultAccount, ...args)
+    generateVoteHash: async (...args) => await generateVoteHash(referenda, web3.eth.defaultAccount, ...args),
+    vote: async (...args) => await vote(referenda, web3.eth.defaultAccount, ...args)
   };
  
   return (
