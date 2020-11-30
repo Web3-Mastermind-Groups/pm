@@ -234,9 +234,9 @@ contract Referenda {
 
     /**
      * @notice Adds a vote to the specified proposal and emits an event
-     * @notice Emits a VoteCounted event
+     * @notice Emits a VoteCast event
      * @param proposalId Id of proposal to vote on
-     * @param voteHash TODO
+     * @param voteHash Hash of vote
      * @return Updated vote count
      */
     function vote(
@@ -264,14 +264,13 @@ contract Referenda {
 
     /**
      * @notice Tallies the votes of `voterIds`
-     * @notice Emits a VotesTallied event
      * @dev Either explicitly or just due to normal operation, the number of
      * iterations in a loop can grow beyond the block gas limit which can cause
      * the complete contract to be stalled at a certain point.
      * @param proposalId Id of proposal to tally votes for
-     * @param voterIds TODO
-     * @param nonces TODO
-     * @param voteHashes TODO
+     * @param voterIds Ids of voters for votes to tally
+     * @param nonces List of nonces for votes
+     * @param voteHashes List of voteHashes to tally
      */
     function tallyVotes(
         uint256 proposalId,
@@ -326,7 +325,6 @@ contract Referenda {
                 }
             }
         }
-        // TODO: Emit VotesTallied(proposalId, proposal.talliedCount, remaining);
     }
 
     /**
@@ -339,7 +337,6 @@ contract Referenda {
 
     /**
      * @notice Returns status of closed proposal (accepted or rejected)
-     * @notice Emits a ProposalStatusUpdated event
      * @param proposalId Id of proposal to calculate outcome for
      * @return Status of proposal
      */
@@ -360,7 +357,6 @@ contract Referenda {
             status = Status.REJECTED;
         }
         proposal.status = status;
-        // TODO: Emit ProposalStatusUpdated(proposalId, status);
         return status;
     }
 }
