@@ -301,16 +301,16 @@ contract Referenda {
 
                 uint256[] calldata voterNonces = nonces[idx];
 
-                bytes32 hashForRejectVote = keccak256(abi.encodePacked(
-                    proposalId,
-                    voterAddress,
-                    uint8(0),
-                    voterNonces
-                ));
                 bytes32 hashForAcceptVote = keccak256(abi.encodePacked(
                     proposalId,
                     voterAddress,
                     uint8(1),
+                    voterNonces
+                ));
+                bytes32 hashForRejectVote = keccak256(abi.encodePacked(
+                    proposalId,
+                    voterAddress,
+                    uint8(2),
                     voterNonces
                 ));
 
