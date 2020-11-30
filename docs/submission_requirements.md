@@ -12,7 +12,7 @@
 - [ ] Frontend should work with web3.js / ethers.js, Infura and MetaMask to: 
   - [x] Recognize and display current MM account
   - [x] Sign transactions that change a deployed contract’s state using MetaMask
-  - [ ] Reflect the successful state change in the UI
+  - [x] Reflect the successful state change in the UI
 
 ### Git
 - [x] Be uploaded to its own Github repository
