@@ -10,7 +10,7 @@ module.exports = function(deployer, network, accounts) {
     return await Registry.deployed();
   })
   .then(async (registry) => {
-    await deployer.deploy(Referenda, registry.address, {from: admin});
+    await deployer.deploy(Referenda, registry.address, 5, {from: admin});
     return await Referenda.deployed();
   })
   .then(async (referenda) => {
